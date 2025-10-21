@@ -1,0 +1,388 @@
+name: XWP Automation - Change-Driven Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      execution_mode:
+        description: 'Test execution mode'
+        required: true
+        default: 'change-driven'
+        type: choice
+        options:
+          - 'change-driven'
+          - 'run-all'
+          - 'run-specific'
+      specific_tests:
+        description: 'Specific tests/folders to run (only used with "run-specific" mode)'
+        required: false
+        default: 'tests/login.spec.ts'
+        type: string
+      browser_matrix:
+        description: 'Browser coverage'
+        required: false
+        default: 'chromium-only'
+        type: choice
+        options:
+          - 'chromium-only'
+          - 'cross-browser'
+
+jobs:
+  detect-changes:
+    name: 🔍 Analyze Changes & Plan Tests
+    runs-on: ubuntu-latest
+    outputs:
+      changed-files: ${{ steps.changes.outputs.files }}
+      test-strategy: ${{ steps.strategy.outputs.strategy }}
+      tests-to-run: ${{ steps.strategy.outputs.tests }}
+      skip-tests: ${{ steps.strategy.outputs.skip }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          fi
+          
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 🧠 Determine Test Strategy
+        id: strategy
+        run: |
+          CHANGED_FILES="${{ steps.changes.outputs.files }}"
+          TESTS_TO_RUN=""
+          STRATEGY="targeted"
+          SKIP_TESTS="false"
+          EXECUTION_MODE="${{ github.event.inputs.execution_mode || 'change-driven' }}"
+          
+          echo "📁 Changed files:"
+          echo "$CHANGED_FILES"
+          echo "🎯 Execution mode: $EXECUTION_MODE"
+          echo ""
+          
+          # Handle manual workflow dispatch modes
+          if [ "$EXECUTION_MODE" = "run-all" ]; then
+            echo "🚀 Manual: Run all tests requested"
+            TESTS_TO_RUN="all"
+            STRATEGY="manual-full"
+          elif [ "$EXECUTION_MODE" = "run-specific" ]; then
+            SPECIFIC_TESTS="${{ github.event.inputs.specific_tests }}"
+            echo "🎯 Manual: Run specific tests - $SPECIFIC_TESTS"
+            TESTS_TO_RUN="$SPECIFIC_TESTS"
+            STRATEGY="manual-specific"
+          elif [ "$EXECUTION_MODE" = "change-driven" ]; then
+            # Original change-driven logic
+            
+            # Skip if only documentation changes
+            if echo "$CHANGED_FILES" | grep -qE '\.(md|txt|json)$' && ! echo "$CHANGED_FILES" | grep -qvE '\.(md|txt|json)$'; then
+              echo "📝 Only documentation changes detected - skipping tests"
+              SKIP_TESTS="true"
+              STRATEGY="skip"
+            else
+              echo "🔍 Analyzing changed files for test impact..."
+              
+              # Check for page object changes
+              if echo "$CHANGED_FILES" | grep -q "pages/.*\.ts"; then
+                CHANGED_PAGES=$(echo "$CHANGED_FILES" | grep "pages/.*\.ts" | sed 's/pages\///g' | sed 's/\.ts//g')
+                echo "📄 Page objects changed: $CHANGED_PAGES"
+                
+                for page in $CHANGED_PAGES; do
+                  case $page in
+                    "login.page"|"base.page")
+                      TESTS_TO_RUN="$TESTS_TO_RUN tests/login.spec.ts"
+                      ;;
+                    "dashboard.page")
+                      TESTS_TO_RUN="$TESTS_TO_RUN tests/dashboard.spec.ts"
+                      ;;
+                    "page.factory")
+                      TESTS_TO_RUN="$TESTS_TO_RUN tests/login.spec.ts tests/dashboard.spec.ts"
+                      ;;
+                  esac
+                done
+              fi
+              
+              # Check for utility changes
+              if echo "$CHANGED_FILES" | grep -q "utils/.*\.ts"; then
+                CHANGED_UTILS=$(echo "$CHANGED_FILES" | grep "utils/.*\.ts")
+                echo "🔧 Utilities changed: $CHANGED_UTILS"
+                
+                if echo "$CHANGED_UTILS" | grep -q "element.helper\|test.utils\|environment.utils"; then
+                  echo "🚨 Core utilities changed - running all tests"
+                  TESTS_TO_RUN="all"
+                  STRATEGY="full"
+                elif echo "$CHANGED_UTILS" | grep -q "smart-logger\|error-inspector\|ai-test-healer"; then
+                  echo "🧠 AI/Logging utilities changed - running smoke tests"
+                  TESTS_TO_RUN="tests/login.spec.ts"
+                  STRATEGY="smoke"
+                fi
+              fi
+              
+              # Check for fixture/data changes
+              if echo "$CHANGED_FILES" | grep -q "fixtures/.*\.ts"; then
+                echo "📊 Test data changed - running related tests"
+                if echo "$CHANGED_FILES" | grep -q "login-data"; then
+                  TESTS_TO_RUN="$TESTS_TO_RUN tests/login.spec.ts"
+                fi
+                if echo "$CHANGED_FILES" | grep -q "dashboard-data"; then
+                  TESTS_TO_RUN="$TESTS_TO_RUN tests/dashboard.spec.ts"
+                fi
+              fi
+              
+              # Check for configuration changes
+              if echo "$CHANGED_FILES" | grep -qE "(playwright\.config|tsconfig|package\.json|\.env)"; then
+                echo "⚙️ Configuration changed - running smoke tests"
+                TESTS_TO_RUN="tests/login.spec.ts"
+                STRATEGY="config"
+              fi
+              
+              # Check for test file changes
+              if echo "$CHANGED_FILES" | grep -q "tests/.*\.spec\.ts"; then
+                CHANGED_TESTS=$(echo "$CHANGED_FILES" | grep "tests/.*\.spec\.ts")
+                echo "🧪 Test files changed: $CHANGED_TESTS"
+                TESTS_TO_RUN="$TESTS_TO_RUN $CHANGED_TESTS"
+              fi
+              
+              # If no specific tests identified, run smoke tests
+              if [ -z "$TESTS_TO_RUN" ] && [ "$SKIP_TESTS" = "false" ]; then
+                echo "🔍 No specific test mapping found - running smoke tests"
+                TESTS_TO_RUN="tests/login.spec.ts"
+                STRATEGY="smoke"
+              fi
+            fi
+          fi
+          
+          # Clean up test list
+          TESTS_TO_RUN=$(echo "$TESTS_TO_RUN" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+          
+          echo "🎯 Test Strategy: $STRATEGY"
+          echo "🧪 Tests to run: $TESTS_TO_RUN"
+          echo "⏭️ Skip tests: $SKIP_TESTS"
+          
+          echo "strategy=$STRATEGY" >> $GITHUB_OUTPUT
+          echo "tests=$TESTS_TO_RUN" >> $GITHUB_OUTPUT
+          echo "skip=$SKIP_TESTS" >> $GITHUB_OUTPUT
+
+  run-targeted-tests:
+    name: 🧪 Execute Targeted Tests
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.skip-tests != 'true'
+    strategy:
+      matrix:
+        browser: [chromium]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install ${{ matrix.browser }} --with-deps
+
+      - name: 🏥 Verify site accessibility
+        run: |
+          if curl -f -s "${STAGING_BASE_URL:-https://platform.qa-1.eater.com}/wp-login.php" > /dev/null; then
+            echo "✅ Site is accessible"
+          else
+            echo "❌ Site is not accessible"
+            exit 1
+          fi
+        env:
+          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
+
+      - name: 🎯 Run Targeted Tests
+        run: |
+          STRATEGY="${{ needs.detect-changes.outputs.test-strategy }}"
+          TESTS="${{ needs.detect-changes.outputs.tests-to-run }}"
+          
+          echo "📋 Execution Plan:"
+          echo "Strategy: $STRATEGY"
+          echo "Tests: $TESTS"
+          echo ""
+          
+          if [ "$TESTS" = "all" ]; then
+            echo "🚀 Running full test suite"
+            npx playwright test --project=${{ matrix.browser }}
+          else
+            echo "🎯 Running targeted tests: $TESTS"
+            npx playwright test $TESTS --project=${{ matrix.browser }}
+          fi
+        env:
+          BASE_URL: ${{ secrets.STAGING_BASE_URL || 'https://platform.qa-1.eater.com' }}
+          API_URL: ${{ secrets.STAGING_API_URL || 'https://platform.qa-1.eater.com/wp-json' }}
+          LOGIN_URL: ${{ secrets.STAGING_BASE_URL || 'https://platform.qa-1.eater.com' }}/wp-login.php
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.browser }}-${{ needs.detect-changes.outputs.test-strategy }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  cross-browser-validation:
+    name: 🌐 Cross-Browser Validation
+    runs-on: ubuntu-latest
+    needs: [detect-changes, run-targeted-tests]
+    if: (needs.detect-changes.outputs.test-strategy == 'full' || needs.detect-changes.outputs.test-strategy == 'manual-full' || github.event.inputs.browser_matrix == 'cross-browser') && needs.detect-changes.outputs.skip-tests != 'true'
+    strategy:
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install ${{ matrix.browser }} --with-deps
+
+      - name: 🌐 Run Cross-Browser Tests
+        run: |
+          TESTS="${{ needs.detect-changes.outputs.tests-to-run }}"
+          if [ "$TESTS" = "all" ]; then
+            npx playwright test --project=${{ matrix.browser }}
+          else
+            npx playwright test $TESTS --project=${{ matrix.browser }}
+          fi
+        env:
+          BASE_URL: ${{ secrets.STAGING_BASE_URL || 'https://platform.qa-1.eater.com' }}
+          API_URL: ${{ secrets.STAGING_API_URL || 'https://platform.qa-1.eater.com/wp-json' }}
+          LOGIN_URL: ${{ secrets.STAGING_BASE_URL || 'https://platform.qa-1.eater.com' }}/wp-login.php
+
+      - name: Upload cross-browser results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-browser-results-${{ matrix.browser }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  generate-report:
+    name: 📊 Generate Test Report
+    runs-on: ubuntu-latest
+    needs: [detect-changes, run-targeted-tests]
+    if: always() && needs.detect-changes.outputs.skip-tests != 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Generate consolidated report
+        run: |
+          echo "# 🧪 Test Execution Report" > test-summary.md
+          echo "" >> test-summary.md
+          echo "**Strategy**: ${{ needs.detect-changes.outputs.test-strategy }}" >> test-summary.md
+          echo "**Tests Executed**: ${{ needs.detect-changes.outputs.tests-to-run }}" >> test-summary.md
+          echo "" >> test-summary.md
+          
+          # Count test results
+          PASSED=$(find artifacts/ -name "*.xml" -exec grep -l 'failures="0"' {} \; 2>/dev/null | wc -l || echo "0")
+          FAILED=$(find artifacts/ -name "*.xml" -exec grep -l 'failures="[1-9]"' {} \; 2>/dev/null | wc -l || echo "0")
+          
+          echo "## 📈 Results Summary" >> test-summary.md
+          echo "- ✅ Passed: $PASSED" >> test-summary.md
+          echo "- ❌ Failed: $FAILED" >> test-summary.md
+          echo "" >> test-summary.md
+          
+          if [ "${{ needs.detect-changes.outputs.test-strategy }}" != "full" ]; then
+            echo "## 🎯 Optimization Impact" >> test-summary.md
+            echo "Targeted testing saved time by running only relevant tests based on file changes." >> test-summary.md
+            echo "" >> test-summary.md
+          fi
+
+      - name: Upload consolidated report
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-summary-report
+          path: test-summary.md
+
+  notify:
+    name: 📢 Notify Results
+    runs-on: ubuntu-latest
+    needs: [detect-changes, run-targeted-tests]
+    if: always()
+    steps:
+      - name: 📋 Post GitHub Summary
+        run: |
+          if [ "${{ needs.detect-changes.outputs.skip-tests }}" = "true" ]; then
+            echo "## 📝 Tests Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "Only documentation files were changed - no tests executed." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+            echo "**Mode**: ${{ github.event.inputs.execution_mode || 'change-driven' }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Strategy**: ${{ needs.detect-changes.outputs.test-strategy }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Tests**: ${{ needs.detect-changes.outputs.tests-to-run }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Browser Matrix**: ${{ github.event.inputs.browser_matrix || 'chromium-only' }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "${{ needs.run-targeted-tests.result }}" = "success" ]; then
+              echo "✅ **All targeted tests passed!**" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Some tests failed - check artifacts for details**" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Add execution mode specific notes
+            case "${{ github.event.inputs.execution_mode }}" in
+              "run-all")
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "🚀 **Manual execution**: Full test suite requested" >> $GITHUB_STEP_SUMMARY
+                ;;
+              "run-specific")
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "🎯 **Manual execution**: Specific tests - ${{ github.event.inputs.specific_tests }}" >> $GITHUB_STEP_SUMMARY
+                ;;
+              "change-driven"|"")
+                if [ "${{ needs.detect-changes.outputs.test-strategy }}" != "skip" ]; then
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "🧠 **Smart execution**: Tests selected based on file changes" >> $GITHUB_STEP_SUMMARY
+                fi
+                ;;
+            esac
+          fi
