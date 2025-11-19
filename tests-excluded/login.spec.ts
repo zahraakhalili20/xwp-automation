@@ -30,8 +30,10 @@ test.describe('Login Authentication Tests', {
     page = await context.newPage();
     pageFactory = new PageFactory(page);
     // Navigate to staging login page
-    const envManager = EnvironmentManager.getInstance();
-    const loginUrl = process.env.LOGIN_URL || `${envManager.getBaseUrl()}/wp-login.php`;
+    const loginUrl = process.env.STAGING_LOGIN_URL;
+    if (!loginUrl) {
+      throw new Error('STAGING_LOGIN_URL is not set in environment variables');
+    }
     await page.goto(loginUrl);
   });
 
@@ -67,22 +69,32 @@ test.describe('Login Authentication Tests', {
     ]
   }, async () => {
     try {
-      SmartLogger.log('INFO', 'Starting staging login test - manual login required');
-      
-      // Pause for manual login
-      SmartLogger.log('INFO', 'Pausing for manual login - please complete login and click Resume');
-      await page.pause();
+      SmartLogger.log('INFO', 'Starting staging login test - automated login with admin credentials');
 
-      // After resuming, verify we're logged in
+      // Click on "login with username" first
+      await pageFactory.loginPage.clickLoginWithUsername();
+
+      // Fill in admin credentials from .env
+      const username = process.env.ADMIN_USERNAME;
+      const password = process.env.ADMIN_PASSWORD;
+      if (!username || !password) {
+        throw new Error('Admin credentials are not set in environment variables');
+      }
+      await pageFactory.loginPage.enterUsername(username);
+      await pageFactory.loginPage.enterPassword(password);
+      await pageFactory.loginPage.clickLogin();
+
+      // Verify login success
+      await page.waitForURL('**/wp-admin**', { timeout: 10000 });
       const currentUrl = page.url();
       const isOnDashboard = currentUrl.includes('wp-admin') || currentUrl.includes('dashboard');
       SmartLogger.logAssertion('Should be on dashboard after login', 'wp-admin or dashboard', currentUrl, isOnDashboard);
       expect(isOnDashboard).toBe(true);
-      
+
       // Save authentication state for other tests
       await page.context().storageState({ path: authFile });
       SmartLogger.log('INFO', 'Staging authentication state saved successfully');
-      
+
     } catch (error) {
       await SmartLogger.logError(error as Error, page);
       throw error;
