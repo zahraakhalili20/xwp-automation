@@ -274,7 +274,7 @@ jobs:
         with:
           name: authentication-state
           path: |
-            staging-ione.json
+            playwright/.auth/staging-ione.json
             test-results/
           retention-days: 1
 
@@ -338,7 +338,14 @@ jobs:
 
       - name: Create temporary Playwright config
         run: |
-          cat > playwright.config.temp.ts << 'EOF'
+          # Check if authentication state exists
+          if [ -f "playwright/.auth/staging-ione.json" ]; then
+            AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
+          else
+            AUTH_STATE=""
+          fi
+          
+          cat > playwright.config.temp.ts << EOF
           import { defineConfig, devices } from '@playwright/test';
           import { config } from 'dotenv';
           
@@ -355,6 +362,7 @@ jobs:
               baseURL: process.env.STAGING_BASE_URL || 'https://staging.go.ione.nyc',
               trace: 'on-first-retry',
               screenshot: 'only-on-failure',
+              ${AUTH_STATE}
             },
             projects: [
               {
@@ -452,7 +460,14 @@ jobs:
 
       - name: Create temporary Playwright config
         run: |
-          cat > playwright.config.temp.ts << 'EOF'
+          # Check if authentication state exists
+          if [ -f "playwright/.auth/staging-ione.json" ]; then
+            AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
+          else
+            AUTH_STATE=""
+          fi
+          
+          cat > playwright.config.temp.ts << EOF
           import { defineConfig, devices } from '@playwright/test';
           import { config } from 'dotenv';
           
@@ -469,6 +484,7 @@ jobs:
               baseURL: process.env.STAGING_BASE_URL || 'https://staging.go.ione.nyc',
               trace: 'on-first-retry',
               screenshot: 'only-on-failure',
+              ${AUTH_STATE}
             },
             projects: [
               {
