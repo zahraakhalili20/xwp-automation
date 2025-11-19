@@ -17,9 +17,9 @@ on:
           - 'run-all'
           - 'run-specific'
       specific_tests:
-        description: 'Specific tests/folders to run (only used with "run-specific" mode)'
+        description: 'Specific tests/folders to run (only used with "run-specific" mode) - excludes login tests'
         required: false
-        default: 'tests/login.spec.ts'
+        default: 'tests/dashboard.spec.ts'
         type: string
       browser_matrix:
         description: 'Browser coverage'
@@ -90,7 +90,20 @@ jobs:
           elif [ "$EXECUTION_MODE" = "run-specific" ]; then
             SPECIFIC_TESTS="${{ github.event.inputs.specific_tests }}"
             echo "🎯 Manual: Run specific tests - $SPECIFIC_TESTS"
-            TESTS_TO_RUN="$SPECIFIC_TESTS"
+            
+            # Filter out login tests - they should only run via authentication setup
+            FILTERED_TESTS=$(echo "$SPECIFIC_TESTS" | sed 's/tests-excluded\/login\.spec\.ts//g' | sed 's/login\.spec\.ts//g' | sed 's/  */ /g' | sed 's/^ *//g' | sed 's/ *$//g')
+            
+            if [ "$FILTERED_TESTS" != "$SPECIFIC_TESTS" ]; then
+              echo "🚫 Login tests removed from manual execution - use 'include_login_test' option instead"
+            fi
+            
+            if [ -z "$FILTERED_TESTS" ] || [ "$FILTERED_TESTS" = " " ]; then
+              echo "⚠️ No valid tests specified after filtering - defaulting to dashboard test"
+              TESTS_TO_RUN="tests/dashboard.spec.ts"
+            else
+              TESTS_TO_RUN="$FILTERED_TESTS"
+            fi
             STRATEGY="manual-specific"
           elif [ "$EXECUTION_MODE" = "change-driven" ]; then
             # Original change-driven logic
@@ -111,13 +124,22 @@ jobs:
                 for page in $CHANGED_PAGES; do
                   case $page in
                     "login.page"|"base.page")
-                      TESTS_TO_RUN="$TESTS_TO_RUN tests/login.spec.ts"
+                      echo "🔐 Login page changes detected - authentication setup will be triggered"
                       ;;
                     "dashboard.page")
                       TESTS_TO_RUN="$TESTS_TO_RUN tests/dashboard.spec.ts"
                       ;;
+                    "categories.page")
+                      TESTS_TO_RUN="$TESTS_TO_RUN tests/categories.spec.ts"
+                      ;;
+                    "all-posts.page")
+                      TESTS_TO_RUN="$TESTS_TO_RUN tests/all-posts.spec.ts"
+                      ;;
+                    "post.page")
+                      TESTS_TO_RUN="$TESTS_TO_RUN tests/post-creation.spec.ts"
+                      ;;
                     "page.factory")
-                      TESTS_TO_RUN="$TESTS_TO_RUN tests/login.spec.ts tests/dashboard.spec.ts"
+                      TESTS_TO_RUN="$TESTS_TO_RUN tests/dashboard.spec.ts tests/categories.spec.ts"
                       ;;
                   esac
                 done
@@ -134,7 +156,7 @@ jobs:
                   STRATEGY="full"
                 elif echo "$CHANGED_UTILS" | grep -q "smart-logger\|error-inspector\|ai-test-healer"; then
                   echo "🧠 AI/Logging utilities changed - running smoke tests"
-                  TESTS_TO_RUN="tests/login.spec.ts"
+                  TESTS_TO_RUN="tests/dashboard.spec.ts"
                   STRATEGY="smoke"
                 fi
               fi
@@ -143,7 +165,7 @@ jobs:
               if echo "$CHANGED_FILES" | grep -q "fixtures/.*\.ts"; then
                 echo "📊 Test data changed - running related tests"
                 if echo "$CHANGED_FILES" | grep -q "login-data"; then
-                  TESTS_TO_RUN="$TESTS_TO_RUN tests/login.spec.ts"
+                  echo "🔐 Login data changes detected - authentication setup will be triggered"
                 fi
                 if echo "$CHANGED_FILES" | grep -q "dashboard-data"; then
                   TESTS_TO_RUN="$TESTS_TO_RUN tests/dashboard.spec.ts"
@@ -153,7 +175,7 @@ jobs:
               # Check for configuration changes
               if echo "$CHANGED_FILES" | grep -qE "(playwright\.config|tsconfig|package\.json|\.env)"; then
                 echo "⚙️ Configuration changed - running smoke tests"
-                TESTS_TO_RUN="tests/login.spec.ts"
+                TESTS_TO_RUN="tests/dashboard.spec.ts"
                 STRATEGY="config"
               fi
               
@@ -167,7 +189,7 @@ jobs:
               # If no specific tests identified, run smoke tests
               if [ -z "$TESTS_TO_RUN" ] && [ "$SKIP_TESTS" = "false" ]; then
                 echo "🔍 No specific test mapping found - running smoke tests"
-                TESTS_TO_RUN="tests/login.spec.ts"
+                TESTS_TO_RUN="tests/dashboard.spec.ts"
                 STRATEGY="smoke"
               fi
             fi
