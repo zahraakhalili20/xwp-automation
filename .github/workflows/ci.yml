@@ -251,7 +251,7 @@ jobs:
           cat > .env << 'EOF'
           STAGING_BASE_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}
           STAGING_API_URL=${{ secrets.STAGING_API_URL || 'https://staging.go.ione.nyc/wp-json' }}
-          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php
+          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php?skip_sso
           ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
           ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
           EOF
@@ -370,7 +370,7 @@ jobs:
           cat > .env << 'EOF'
           STAGING_BASE_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}
           STAGING_API_URL=${{ secrets.STAGING_API_URL || 'https://staging.go.ione.nyc/wp-json' }}
-          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php
+          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php?skip_sso
           ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
           ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
           EOF
@@ -488,7 +488,7 @@ jobs:
           cat > .env << 'EOF'
           STAGING_BASE_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}
           STAGING_API_URL=${{ secrets.STAGING_API_URL || 'https://staging.go.ione.nyc/wp-json' }}
-          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php
+          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php?skip_sso
           ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
           ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
           EOF
