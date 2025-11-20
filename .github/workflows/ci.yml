@@ -228,11 +228,7 @@ jobs:
           npm ci
           npx playwright install ${{ matrix.browser }} --with-deps
 
-      - name: 🔐 Run authentication setup (if needed)
-        if: |
-          github.event.inputs.include_login_test == 'true' || 
-          contains(needs.detect-changes.outputs.tests-to-run, 'login.spec.ts') ||
-          needs.detect-changes.outputs.test-strategy == 'full'
+      - name: 🔐 Run authentication setup (always)
         run: |
           # Create temporary config for login test
           cat > playwright.config.temp.ts << 'EOF'
