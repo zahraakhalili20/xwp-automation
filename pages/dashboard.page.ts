@@ -2,11 +2,14 @@ import { Page } from '@playwright/test';
 import { BasePage } from './base.page';
 import elementHelper from '../utils/element.helper';
 import { SmartLogger } from '../utils/smart-logger.utils';
+import { EnvironmentManager } from '../utils/environment.utils';
 
 /**
  * Dashboard Page Object Model for WordPress Admin Dashboard
  */
 class DashboardPage extends BasePage {
+  private envManager = EnvironmentManager.getInstance();
+  
   constructor(page: Page) {
     // WordPress admin body typically has wp-admin class
     const element = 'body.wp-admin, #wpadminbar';
@@ -91,10 +94,7 @@ class DashboardPage extends BasePage {
    * Navigate to the dashboard
    */
   async navigate(): Promise<void> {
-    const baseURL = process.env.BASE_URL || process.env.LOGIN_URL?.replace('/wp-login.php?skipsso', '') || '';
-    if (!baseURL) {
-      throw new Error('Base URL is not defined in the environment variables.');
-    }
+    const baseURL = this.envManager.getBaseUrl();
     await this.page.goto(`${baseURL}/wp-admin/`);
   }
 
@@ -179,7 +179,8 @@ class DashboardPage extends BasePage {
   async isSidebarMenuItemVisible(menuSelector: string): Promise<boolean> {
     try {
       const locator = this.page.locator(menuSelector);
-      return await elementHelper.isElementDisplayed(locator);
+      // Use shorter timeout for menu items that might not exist due to permissions
+      return await elementHelper.isElementDisplayed(locator, 3000);
     } catch {
       return false;
     }
@@ -265,12 +266,12 @@ class DashboardPage extends BasePage {
         await addNewLink.click();
       } else {
         // Direct navigation as last resort
-        const baseURL = process.env.BASE_URL || '';
+        const baseURL = this.envManager.getBaseUrl();
         await this.page.goto(`${baseURL}/wp-admin/post-new.php`);
       }
     } catch (error) {
       // Direct navigation fallback
-      const baseURL = process.env.BASE_URL || '';
+      const baseURL = this.envManager.getBaseUrl();
       await this.page.goto(`${baseURL}/wp-admin/post-new.php`);
     }
   }
