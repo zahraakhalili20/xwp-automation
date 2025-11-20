@@ -20,7 +20,7 @@ test.describe('Category Management Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -48,7 +48,7 @@ test.describe('Category Management Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -82,7 +82,7 @@ test.describe('Category Management Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -109,7 +109,7 @@ test.describe('Category Management Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -153,7 +153,7 @@ test.describe('Category Management Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -190,7 +190,7 @@ test.describe('Category Management Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -227,7 +227,7 @@ test.describe('Category Management Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
