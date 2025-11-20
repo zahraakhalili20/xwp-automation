@@ -206,29 +206,35 @@ jobs:
           echo "tests=$TESTS_TO_RUN" >> $GITHUB_OUTPUT
           echo "skip=$SKIP_TESTS" >> $GITHUB_OUTPUT
 
-  setup-authentication:
-    name: 🔐 Setup Authentication
+  run-tests-with-auth:
+    name: 🧪 Execute Tests (with Auth Setup)
     runs-on: ubuntu-latest
     needs: detect-changes
-    if: |
-      needs.detect-changes.outputs.skip-tests != 'true' && 
-      (github.event.inputs.include_login_test == 'true' || 
-       contains(needs.detect-changes.outputs.tests-to-run, 'login.spec.ts') ||
-       needs.detect-changes.outputs.test-strategy == 'full')
+    if: needs.detect-changes.outputs.skip-tests != 'true'
+    strategy:
+      matrix:
+        browser: ${{ github.event.inputs.browser_matrix == 'cross-browser' && fromJSON('["chromium", "firefox", "webkit"]') || fromJSON('["chromium"]') }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.target_branch || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-      - name: Setup and install dependencies
+      - name: Setup dependencies
         run: |
           npm ci
-          npx playwright install chromium --with-deps
+          npx playwright install ${{ matrix.browser }} --with-deps
 
-      - name: 🔐 Run authentication test
+      - name: 🔐 Run authentication setup (if needed)
+        if: |
+          github.event.inputs.include_login_test == 'true' || 
+          contains(needs.detect-changes.outputs.tests-to-run, 'login.spec.ts') ||
+          needs.detect-changes.outputs.test-strategy == 'full'
         run: |
-          # Create temporary config and env files
+          # Create temporary config for login test
           cat > playwright.config.temp.ts << 'EOF'
           import { defineConfig, devices } from '@playwright/test';
           import { config } from 'dotenv';
@@ -257,60 +263,29 @@ jobs:
           ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
           EOF
           
-          # Run login test and cleanup
+          # Run login test to create authentication state
+          echo "🔐 Running authentication setup..."
           npx playwright test login.spec.ts --config=playwright.config.temp.ts --project=chromium
           rm -f playwright.config.temp.ts .env
-
-      - name: Upload authentication state
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: auth-state
-          path: playwright/.auth/staging-ione.json
-          retention-days: 1
-
-  run-targeted-tests:
-    name: 🧪 Execute Targeted Tests
-    runs-on: ubuntu-latest
-    needs: [detect-changes, setup-authentication]
-    if: needs.detect-changes.outputs.skip-tests != 'true' && (success() || needs.setup-authentication.result == 'skipped')
-    strategy:
-      matrix:
-        browser: ${{ github.event.inputs.browser_matrix == 'cross-browser' && fromJSON('["chromium", "firefox", "webkit"]') || fromJSON('["chromium"]') }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Setup dependencies
-        run: |
-          npm ci
-          npx playwright install ${{ matrix.browser }} --with-deps
-
-      - name: Download authentication state
-        if: needs.setup-authentication.result == 'success'
-        uses: actions/download-artifact@v4
-        with:
-          name: auth-state
-          path: playwright/.auth/
-
-      - name: Prepare authentication
-        run: |
-          # Set up authentication state variable
-          AUTH_STATE=""
-          if [ "${{ needs.setup-authentication.result }}" = "success" ] && [ -f "playwright/.auth/staging-ione.json" ]; then
-            AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
-            echo "✅ Authentication state available"
+          
+          if [ -f "playwright/.auth/staging-ione.json" ]; then
+            echo "✅ Authentication state created successfully"
           else
-            echo "⏭️ No authentication state - running without login"
+            echo "❌ Authentication state not created"
           fi
-          echo "AUTH_STATE=$AUTH_STATE" >> $GITHUB_ENV
 
       - name: 🎯 Run targeted tests
         run: |
-          # Create config with auth state
+          # Check if authentication state is available
+          AUTH_STATE=""
+          if [ -f "playwright/.auth/staging-ione.json" ]; then
+            AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
+            echo "✅ Using authentication state for tests"
+          else
+            echo "⏭️ Running tests without authentication state"
+          fi
+          
+          # Create config for main tests
           cat > playwright.config.temp.ts << EOF
           import { defineConfig, devices } from '@playwright/test';
           import { config } from 'dotenv';
@@ -343,13 +318,16 @@ jobs:
           # Run tests
           TESTS="${{ needs.detect-changes.outputs.tests-to-run }}"
           if [ "$TESTS" = "all" ]; then
+            echo "🚀 Running full test suite"
             npx playwright test --config=playwright.config.temp.ts --project=${{ matrix.browser }}
           else
+            echo "🎯 Running targeted tests: $TESTS"
             npx playwright test $TESTS --config=playwright.config.temp.ts --project=${{ matrix.browser }}
           fi
           
-          # Cleanup
+          # Cleanup all temporary files
           rm -f playwright.config.temp.ts .env
+          rm -f playwright/.auth/staging-ione.json
 
       - name: Upload results
         if: always()
