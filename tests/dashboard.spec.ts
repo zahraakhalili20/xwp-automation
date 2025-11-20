@@ -3,7 +3,7 @@
  * Tests dashboard access and sidebar navigation elements using saved session
  * Following AI_AGENT_INSTRUCTIONS patterns
  * 
- * Note: Uses saved session from .auth/staging-ione.json - login handled separately
+ * Note: Uses saved session from playwright/.auth/staging-ione.json - configured globally in playwright.config.ts
  * @author XWP Platform Team
  */
 
@@ -13,9 +13,6 @@ import { TestTags, TagCombinations } from '@fixtures/test-tags.fixture';
 import { testTimeouts } from '@fixtures/test-data.fixture';
 import { EnvironmentManager } from '@utils/environment.utils';
 import path from 'path';
-
-// Session file for staging environment
-const stagingAuthFile = path.resolve('.auth/staging-ione.json');
 
 test.describe('Dashboard Tests', {
   tag: [TestTags.STAGING_ONLY, TestTags.DASHBOARD, TestTags.CORE]
@@ -34,7 +31,7 @@ test.describe('Dashboard Tests', {
     let page;
     let pageFactory: PageFactory;
     try {
-      context = await browser.newContext({ storageState: stagingAuthFile });
+      context = await browser.newContext();
       page = await context.newPage();
       pageFactory = new PageFactory(page);
 
@@ -55,7 +52,7 @@ test.describe('Dashboard Tests', {
     let page;
     let pageFactory: PageFactory;
     try {
-      context = await browser.newContext({ storageState: stagingAuthFile });
+      context = await browser.newContext();
       page = await context.newPage();
       pageFactory = new PageFactory(page);
 
@@ -77,7 +74,7 @@ test.describe('Dashboard Tests', {
     let page;
     let pageFactory: PageFactory;
     try {
-      context = await browser.newContext({ storageState: stagingAuthFile });
+      context = await browser.newContext();
       page = await context.newPage();
       pageFactory = new PageFactory(page);
 
@@ -100,7 +97,7 @@ test.describe('Dashboard Tests', {
     let page;
     let pageFactory: PageFactory;
     try {
-      context = await browser.newContext({ storageState: stagingAuthFile });
+      context = await browser.newContext();
       page = await context.newPage();
       pageFactory = new PageFactory(page);
 
@@ -132,7 +129,7 @@ test.describe('Dashboard Tests', {
     let page;
     let pageFactory: PageFactory;
     try {
-      context = await browser.newContext({ storageState: stagingAuthFile });
+      context = await browser.newContext();
       page = await context.newPage();
       pageFactory = new PageFactory(page);
 
@@ -154,7 +151,7 @@ test.describe('Dashboard Tests', {
     let page;
     let pageFactory: PageFactory;
     try {
-      context = await browser.newContext({ storageState: stagingAuthFile });
+      context = await browser.newContext();
       page = await context.newPage();
       pageFactory = new PageFactory(page);
 
@@ -176,7 +173,7 @@ test.describe('Dashboard Tests', {
     let page;
     let pageFactory: PageFactory;
     try {
-      context = await browser.newContext({ storageState: stagingAuthFile });
+      context = await browser.newContext();
       page = await context.newPage();
       pageFactory = new PageFactory(page);
 

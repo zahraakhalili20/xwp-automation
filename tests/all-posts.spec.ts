@@ -6,7 +6,7 @@
  * Tests cover: posts list navigation, search functionality, filtering, 
  * post management actions, and integration with post creation flows
  * 
- * Note: Uses saved session from .auth/staging-ione.json - login handled separately
+ * Note: Uses saved session from playwright/.auth/staging-ione.json - configured globally in playwright.config.ts
  * Based on live site inspection of staging.go.ione.nyc/wp-admin/edit.php
  * 
  * @author XWP Platform Team
@@ -30,14 +30,11 @@ test.describe('All Posts Page Tests', {
     
     // Initialize SmartLogger for each test
     SmartLogger.initializeTest(testInfo.title);
-  });
-
+  })
   test('should load all posts page successfully @all-posts @load', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const allPostsPage = contextPageFactory.allPostsPage;
@@ -54,14 +51,11 @@ test.describe('All Posts Page Tests', {
     expect(pageTitle).toContain('Posts');
 
     await context.close();
-  });
-
+  })
   test('should navigate from dashboard to all posts page @navigation @dashboard-integration', {
     tag: [TestTags.NAVIGATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const dashboardPage = contextPageFactory.dashboardPage;
@@ -82,14 +76,11 @@ test.describe('All Posts Page Tests', {
     expect(page.url()).toContain('edit.php');
 
     await context.close();
-  });
-
+  })
   test('should navigate to add new post from all posts page @navigation @add-new', {
     tag: [TestTags.NAVIGATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const allPostsPage = contextPageFactory.allPostsPage;
@@ -105,14 +96,11 @@ test.describe('All Posts Page Tests', {
     expect(page.url()).toContain('post-new.php');
 
     await context.close();
-  });
-
+  })
   test('should display posts list and retrieve post titles @posts-list @content', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const allPostsPage = contextPageFactory.allPostsPage;
@@ -136,15 +124,12 @@ test.describe('All Posts Page Tests', {
     expect(totalCount).toBe(postTitles.length);
 
     await context.close();
-  });
-
+  })
   test('should filter posts by status @posts-filtering @status', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     test.setTimeout(60000); // Increase timeout to 60 seconds for this test
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const allPostsPage = contextPageFactory.allPostsPage;
@@ -178,14 +163,11 @@ test.describe('All Posts Page Tests', {
     expect(finalAllCount).toBe(allPostsCount);
 
     await context.close();
-  });
-
+  })
   test('should search for posts by title @posts-search @functionality', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const allPostsPage = contextPageFactory.allPostsPage;
@@ -216,14 +198,11 @@ test.describe('All Posts Page Tests', {
     }
 
     await context.close();
-  });
-
+  })
   test('should create post and verify it appears in all posts list @integration @post-creation-flow', {
     tag: [TestTags.INTEGRATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const allPostsPage = contextPageFactory.allPostsPage;
@@ -256,14 +235,11 @@ test.describe('All Posts Page Tests', {
     expect(foundPost).toBe(testTitle);
 
     await context.close();
-  });
-
+  })
   test('should edit post from all posts page @integration @post-editing-flow', {
     tag: [TestTags.INTEGRATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const allPostsPage = contextPageFactory.allPostsPage;
@@ -310,15 +286,12 @@ test.describe('All Posts Page Tests', {
     expect(originalStillExists).toBe(false);
 
     await context.close();
-  });
-
+  })
   test('should verify publish post workflow integration @integration @publish-flow', {
     tag: [TestTags.INTEGRATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     test.setTimeout(60000); // Increase timeout to 60 seconds for this integration test
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const allPostsPage = contextPageFactory.allPostsPage;
@@ -353,6 +326,7 @@ test.describe('All Posts Page Tests', {
     expect(publishedPostExists).toBe(true);
 
     await context.close();
+
   });
 
 });

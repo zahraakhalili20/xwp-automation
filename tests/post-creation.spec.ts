@@ -28,14 +28,11 @@ test.describe('Post Creation Tests', {
     
     // Initialize SmartLogger for each test
     SmartLogger.initializeTest(testInfo.title);
-  });
-
+  })
   test('should load post editor directly @post-editor @load', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -48,14 +45,11 @@ test.describe('Post Creation Tests', {
     expect(allElementsVisible).toBe(true);
 
     await context.close();
-  });
-
+  })
   test('should create post with title and content @post-creation @text-editor', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -79,14 +73,11 @@ test.describe('Post Creation Tests', {
     expect(savedContent).toBe(testContent);
 
     await context.close();
-  });
-
+  })
   test('should save post as draft @post-creation @draft', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -107,14 +98,11 @@ test.describe('Post Creation Tests', {
     expect(successVisible).toBe(true);
 
     await context.close();
-  });
-
+  })
   test('should add tags to post @post-creation @metadata', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -137,14 +125,11 @@ test.describe('Post Creation Tests', {
     expect(successVisible).toBe(true);
 
     await context.close();
-  });
-
+  })
   test('should navigate from dashboard to post editor @navigation @sidebar', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const dashboardPage = contextPageFactory.dashboardPage;
@@ -168,14 +153,11 @@ test.describe('Post Creation Tests', {
     expect(await postPage.verifyAllPostEditorElementsVisible()).toBe(true);
 
     await context.close();
-  });
-
+  })
   test('should create and publish post @post-creation @publish', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -199,14 +181,11 @@ test.describe('Post Creation Tests', {
     await expect(page).toHaveURL(/.*post\.php.*action=edit/);
 
     await context.close();
-  });
-
+  })
   test('should verify post details after draft creation @post-verification @draft-details', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -231,14 +210,11 @@ test.describe('Post Creation Tests', {
     expect(postId).not.toBeNull();
 
     await context.close();
-  });
-
+  })
   test('should verify post details after publishing @post-verification @published-details', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -265,14 +241,11 @@ test.describe('Post Creation Tests', {
     await expect(page).toHaveURL(/.*post\.php.*action=edit/);
 
     await context.close();
-  });
-
+  })
   test('should verify post details persist after editing @post-verification @edit-persistence', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -318,14 +291,11 @@ test.describe('Post Creation Tests', {
     expect(updatedPostId).toBe(postId);
 
     await context.close();
-  });
-
+  })
   test('should verify empty content handling @post-verification @empty-content', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -350,14 +320,11 @@ test.describe('Post Creation Tests', {
     expect(detailsMatch).toBe(true);
 
     await context.close();
-  });
-
+  })
   test('should verify special characters in post content @post-verification @special-chars', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -391,15 +358,12 @@ test.describe('Post Creation Tests', {
     expect(actualTagsArray).toEqual(expectedTagsArray);
 
     await context.close();
-  });
-
+  })
   test('should create post and verify it appears in all posts list @integration @all-posts-verification', {
     tag: [TestTags.INTEGRATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     test.setTimeout(90000); // Increase timeout to 90 seconds for this integration test
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const postPage = contextPageFactory.postPage;
@@ -458,4 +422,5 @@ test.describe('Post Creation Tests', {
 
     await context.close();
   });
+
 });

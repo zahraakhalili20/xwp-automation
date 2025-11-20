@@ -45,33 +45,34 @@ export default defineConfig({
     actionTimeout: 30000,
     navigationTimeout: 30000,
     
-    headless: false
+    headless: true
   },
 
   /* Configure projects for major browsers */
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-   /**  {
-      name: 'chromium-authenticated',
       use: { 
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/staging-ione.json'
       },
-      dependencies: ['chromium'],
-    },
+    }
 
-   {
+   /* {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: { 
+        ...devices['Desktop Firefox'],
+        storageState: 'playwright/.auth/staging-ione.json'
+      },
     },
 
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+      use: { 
+        ...devices['Desktop Safari'],
+        storageState: 'playwright/.auth/staging-ione.json'
+      },
+    },*/
 
     /* Test against mobile viewports. 
     {

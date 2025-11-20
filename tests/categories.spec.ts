@@ -19,9 +19,7 @@ test.describe('Category Management Tests', {
   test('should load categories page directly @categories @load', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const categoriesPage = contextPageFactory.getCategoriesPage();
@@ -42,14 +40,11 @@ test.describe('Category Management Tests', {
     SmartLogger.log('INFO', 'Categories page loaded successfully');
 
     await context.close();
-  });
-
+  })
   test('should create a new category @categories @create', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const categoriesPage = contextPageFactory.getCategoriesPage();
@@ -76,14 +71,11 @@ test.describe('Category Management Tests', {
     SmartLogger.log('INFO', 'Category created successfully');
 
     await context.close();
-  });
-
+  })
   test('should search for categories @categories @search', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const categoriesPage = contextPageFactory.getCategoriesPage();
@@ -103,14 +95,11 @@ test.describe('Category Management Tests', {
     SmartLogger.log('INFO', 'Category search completed successfully');
 
     await context.close();
-  });
-
+  })
   test('should edit an existing category @categories @edit', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const categoriesPage = contextPageFactory.getCategoriesPage();
@@ -147,14 +136,11 @@ test.describe('Category Management Tests', {
     SmartLogger.log('INFO', 'Category edited successfully');
 
     await context.close();
-  });
-
+  })
   test('should delete a category @categories @delete', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const categoriesPage = contextPageFactory.getCategoriesPage();
@@ -184,14 +170,11 @@ test.describe('Category Management Tests', {
     SmartLogger.log('INFO', 'Category deleted successfully');
 
     await context.close();
-  });
-
+  })
   test('should perform bulk delete operation @categories @bulk', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const categoriesPage = contextPageFactory.getCategoriesPage();
@@ -221,14 +204,11 @@ test.describe('Category Management Tests', {
     SmartLogger.log('INFO', 'Bulk delete operation completed successfully');
 
     await context.close();
-  });
-
+  })
   test('should validate category form fields @categories @validation', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
-    const context = await browser.newContext({
-      storageState: 'playwright/.auth/staging-ione.json'
-    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
     const categoriesPage = contextPageFactory.getCategoriesPage();
@@ -258,5 +238,7 @@ test.describe('Category Management Tests', {
     SmartLogger.log('INFO', 'Category form validation working correctly');
 
     await context.close();
+
   });
+
 });
