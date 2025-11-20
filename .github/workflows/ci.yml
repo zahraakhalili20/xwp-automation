@@ -264,21 +264,36 @@ jobs:
           npx playwright test login.spec.ts --config=playwright.config.temp.ts --project=chromium
           rm -f playwright.config.temp.ts .env
           
+          # Ensure the .auth directory exists and check file creation
+          mkdir -p playwright/.auth
           if [ -f "playwright/.auth/staging-ione.json" ]; then
             echo "✅ Authentication state created successfully"
+            ls -la playwright/.auth/
           else
             echo "❌ Authentication state not created"
+            echo "📁 Checking playwright directory structure:"
+            find . -name "*.json" -path "*/.auth/*" 2>/dev/null || echo "No auth files found"
           fi
 
       - name: 🎯 Run targeted tests
         run: |
+          # Debug: Show current directory and file structure
+          echo "📁 Current working directory: $(pwd)"
+          echo "🔍 Looking for authentication state file..."
+          echo "📂 Directory structure:"
+          ls -la playwright/ 2>/dev/null || echo "❌ No playwright directory found"
+          ls -la playwright/.auth/ 2>/dev/null || echo "❌ No .auth directory found"
+          
           # Check if authentication state is available
           AUTH_STATE=""
-          if [ -f "playwright/.auth/staging-ione.json" ]; then
-            AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
-            echo "✅ Using authentication state for tests"
+          AUTH_FILE_PATH="playwright/.auth/staging-ione.json"
+          if [ -f "$AUTH_FILE_PATH" ]; then
+            AUTH_STATE="storageState: '$AUTH_FILE_PATH',"
+            echo "✅ Using authentication state for tests: $AUTH_FILE_PATH"
+            echo "📄 File size: $(stat -c%s "$AUTH_FILE_PATH" 2>/dev/null || stat -f%z "$AUTH_FILE_PATH" 2>/dev/null || echo "unknown") bytes"
           else
             echo "⏭️ Running tests without authentication state"
+            echo "❌ File not found: $AUTH_FILE_PATH"
           fi
           
           # Create config for main tests

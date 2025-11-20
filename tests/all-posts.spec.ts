@@ -36,7 +36,7 @@ test.describe('All Posts Page Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -60,7 +60,7 @@ test.describe('All Posts Page Tests', {
     tag: [TestTags.NAVIGATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -88,7 +88,7 @@ test.describe('All Posts Page Tests', {
     tag: [TestTags.NAVIGATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -111,7 +111,7 @@ test.describe('All Posts Page Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -143,7 +143,7 @@ test.describe('All Posts Page Tests', {
   }, async ({ browser }) => {
     test.setTimeout(60000); // Increase timeout to 60 seconds for this test
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -184,7 +184,7 @@ test.describe('All Posts Page Tests', {
     tag: [TestTags.CORE, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -222,7 +222,7 @@ test.describe('All Posts Page Tests', {
     tag: [TestTags.INTEGRATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -262,7 +262,7 @@ test.describe('All Posts Page Tests', {
     tag: [TestTags.INTEGRATION, TestTags.STAGING_ONLY]
   }, async ({ browser }) => {
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
@@ -317,7 +317,7 @@ test.describe('All Posts Page Tests', {
   }, async ({ browser }) => {
     test.setTimeout(60000); // Increase timeout to 60 seconds for this integration test
     const context = await browser.newContext({
-      storageState: '.auth/staging-ione.json'
+      storageState: 'playwright/.auth/staging-ione.json'
     });
     const page = await context.newPage();
     const contextPageFactory = new PageFactory(page);
