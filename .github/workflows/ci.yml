@@ -221,94 +221,53 @@ jobs:
         with:
           ref: ${{ github.event.inputs.target_branch || github.ref }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
-
-      - name: Create temporary Playwright config
+      - name: Setup and install dependencies
         run: |
+          npm ci
+          npx playwright install chromium --with-deps
+
+      - name: 🔐 Run authentication test
+        run: |
+          # Create temporary config and env files
           cat > playwright.config.temp.ts << 'EOF'
           import { defineConfig, devices } from '@playwright/test';
           import { config } from 'dotenv';
-          
           config();
-          
           export default defineConfig({
             testDir: './tests-excluded',
             fullyParallel: true,
             forbidOnly: !!process.env.CI,
             retries: process.env.CI ? 2 : 0,
-            workers: process.env.CI ? 1 : undefined,
+            workers: 1,
             reporter: 'html',
             use: {
               baseURL: process.env.STAGING_BASE_URL || 'https://staging.go.ione.nyc',
               trace: 'on-first-retry',
               screenshot: 'only-on-failure',
             },
-            projects: [
-              {
-                name: 'chromium',
-                use: { ...devices['Desktop Chrome'] },
-              },
-            ],
+            projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
           });
           EOF
-
-      - name: Create temporary environment file
-        run: |
+          
           cat > .env << 'EOF'
           STAGING_BASE_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}
           STAGING_API_URL=${{ secrets.STAGING_API_URL || 'https://staging.go.ione.nyc/wp-json' }}
-          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php?skip_sso
+          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php
           ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
           ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
           EOF
-
-      - name: 🔐 Run authentication test
-        run: npx playwright test login.spec.ts --config=playwright.config.temp.ts --project=chromium
-        env:
-          BASE_URL: ${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}
-          API_URL: ${{ secrets.STAGING_API_URL || 'https://staging.go.ione.nyc/wp-json' }}
-          LOGIN_URL: ${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php
-
-      - name: Clean up temporary files
-        if: always()
-        run: |
-          rm -f playwright.config.temp.ts
-          rm -f .env
+          
+          # Run login test and cleanup
+          npx playwright test login.spec.ts --config=playwright.config.temp.ts --project=chromium
+          rm -f playwright.config.temp.ts .env
 
       - name: Upload authentication state
-        uses: actions/upload-artifact@v4
-        with:
-          name: authentication-state
-          path: |
-            playwright/.auth/staging-ione.json
-            test-results/
-          retention-days: 1
-
-      - name: Upload login test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: login-test-results
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 7
+          name: auth-state
+          path: playwright/.auth/staging-ione.json
+          retention-days: 1
 
   run-targeted-tests:
     name: 🧪 Execute Targeted Tests
@@ -317,342 +276,88 @@ jobs:
     if: needs.detect-changes.outputs.skip-tests != 'true' && (success() || needs.setup-authentication.result == 'skipped')
     strategy:
       matrix:
-        browser: [chromium]
+        browser: ${{ github.event.inputs.browser_matrix == 'cross-browser' && fromJSON('["chromium", "firefox", "webkit"]') || fromJSON('["chromium"]') }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        run: npx playwright install ${{ matrix.browser }} --with-deps
+      - name: Setup and prepare authentication
+        run: |
+          npm ci
+          npx playwright install ${{ matrix.browser }} --with-deps
+          
+          # Download and setup auth if available
+          AUTH_STATE=""
+          if [ "${{ needs.setup-authentication.result }}" = "success" ]; then
+            if [ -f "staging-ione.json" ]; then
+              mkdir -p playwright/.auth
+              mv staging-ione.json playwright/.auth/staging-ione.json
+            fi
+            if [ -f "playwright/.auth/staging-ione.json" ]; then
+              AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
+            fi
+          fi
+          echo "AUTH_STATE=$AUTH_STATE" >> $GITHUB_ENV
 
       - name: Download authentication state
         if: needs.setup-authentication.result == 'success'
         uses: actions/download-artifact@v4
         with:
-          name: authentication-state
-          path: ./
+          name: auth-state
+          path: playwright/.auth/
 
-      - name: 🏥 Verify site accessibility
+      - name: 🎯 Run targeted tests
         run: |
-          if curl -f -s "${STAGING_BASE_URL:-https://platform.qa-1.eater.com}/wp-login.php" > /dev/null; then
-            echo "✅ Site is accessible"
-          else
-            echo "❌ Site is not accessible"
-            exit 1
-          fi
-        env:
-          STAGING_BASE_URL: ${{ secrets.STAGING_BASE_URL }}
-
-      - name: Create temporary Playwright config
-        run: |
-          # Check if authentication state exists
-          if [ -f "playwright/.auth/staging-ione.json" ]; then
-            AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
-          else
-            AUTH_STATE=""
-          fi
-          
+          # Create config and env
           cat > playwright.config.temp.ts << EOF
           import { defineConfig, devices } from '@playwright/test';
           import { config } from 'dotenv';
-          
           config();
-          
           export default defineConfig({
             testDir: './tests',
             fullyParallel: true,
             forbidOnly: !!process.env.CI,
             retries: process.env.CI ? 2 : 0,
-            workers: process.env.CI ? 1 : undefined,
+            workers: 1,
             reporter: 'html',
             use: {
               baseURL: process.env.STAGING_BASE_URL || 'https://staging.go.ione.nyc',
               trace: 'on-first-retry',
               screenshot: 'only-on-failure',
-              ${AUTH_STATE}
+              ${{ env.AUTH_STATE }}
             },
-            projects: [
-              {
-                name: 'chromium',
-                use: { ...devices['Desktop Chrome'] },
-              },
-            ],
+            projects: [{ name: '${{ matrix.browser }}', use: { ...devices['Desktop Chrome'] } }],
           });
           EOF
-
-      - name: Create temporary environment file
-        run: |
+          
           cat > .env << 'EOF'
           STAGING_BASE_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}
           STAGING_API_URL=${{ secrets.STAGING_API_URL || 'https://staging.go.ione.nyc/wp-json' }}
-          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php?skip_sso
+          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php
           ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
           ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
           EOF
-
-      - name: 🎯 Run Targeted Tests
-        run: |
-          STRATEGY="${{ needs.detect-changes.outputs.test-strategy }}"
-          TESTS="${{ needs.detect-changes.outputs.tests-to-run }}"
           
-          echo "📋 Execution Plan:"
-          echo "Strategy: $STRATEGY"
-          echo "Tests: $TESTS"
-          echo ""
-          
-          if [ "$TESTS" = "all" ]; then
-            echo "🚀 Running full test suite"
-            npx playwright test --config=playwright.config.temp.ts --project=${{ matrix.browser }}
-          else
-            echo "🎯 Running targeted tests: $TESTS"
-            npx playwright test $TESTS --config=playwright.config.temp.ts --project=${{ matrix.browser }}
-          fi
-        env:
-          BASE_URL: ${{ secrets.STAGING_BASE_URL || 'https://platform.qa-1.eater.com' }}
-          API_URL: ${{ secrets.STAGING_API_URL || 'https://platform.qa-1.eater.com/wp-json' }}
-          LOGIN_URL: ${{ secrets.STAGING_BASE_URL || 'https://platform.qa-1.eater.com' }}/wp-login.php
-
-      - name: Clean up temporary files
-        if: always()
-        run: |
-          rm -f playwright.config.temp.ts
-          rm -f .env
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ matrix.browser }}-${{ needs.detect-changes.outputs.test-strategy }}
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 7
-
-  cross-browser-validation:
-    name: 🌐 Cross-Browser Validation
-    runs-on: ubuntu-latest
-    needs: [detect-changes, setup-authentication, run-targeted-tests]
-    if: (needs.detect-changes.outputs.test-strategy == 'full' || needs.detect-changes.outputs.test-strategy == 'manual-full' || github.event.inputs.browser_matrix == 'cross-browser') && needs.detect-changes.outputs.skip-tests != 'true'
-    strategy:
-      matrix:
-        browser: [firefox, webkit]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        run: npx playwright install ${{ matrix.browser }} --with-deps
-
-      - name: Download authentication state
-        if: needs.setup-authentication.result == 'success'
-        uses: actions/download-artifact@v4
-        with:
-          name: authentication-state
-          path: ./
-
-      - name: Create temporary Playwright config
-        run: |
-          # Check if authentication state exists
-          if [ -f "playwright/.auth/staging-ione.json" ]; then
-            AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
-          else
-            AUTH_STATE=""
-          fi
-          
-          cat > playwright.config.temp.ts << EOF
-          import { defineConfig, devices } from '@playwright/test';
-          import { config } from 'dotenv';
-          
-          config();
-          
-          export default defineConfig({
-            testDir: './tests',
-            fullyParallel: true,
-            forbidOnly: !!process.env.CI,
-            retries: process.env.CI ? 2 : 0,
-            workers: process.env.CI ? 1 : undefined,
-            reporter: 'html',
-            use: {
-              baseURL: process.env.STAGING_BASE_URL || 'https://staging.go.ione.nyc',
-              trace: 'on-first-retry',
-              screenshot: 'only-on-failure',
-              ${AUTH_STATE}
-            },
-            projects: [
-              {
-                name: 'firefox',
-                use: { ...devices['Desktop Firefox'] },
-              },
-              {
-                name: 'webkit',
-                use: { ...devices['Desktop Safari'] },
-              },
-            ],
-          });
-          EOF
-
-      - name: Create temporary environment file
-        run: |
-          cat > .env << 'EOF'
-          STAGING_BASE_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}
-          STAGING_API_URL=${{ secrets.STAGING_API_URL || 'https://staging.go.ione.nyc/wp-json' }}
-          STAGING_LOGIN_URL=${{ secrets.STAGING_BASE_URL || 'https://staging.go.ione.nyc' }}/wp-login.php?skip_sso
-          ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
-          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
-          EOF
-
-      - name: 🌐 Run Cross-Browser Tests
-        run: |
+          # Run tests
           TESTS="${{ needs.detect-changes.outputs.tests-to-run }}"
           if [ "$TESTS" = "all" ]; then
             npx playwright test --config=playwright.config.temp.ts --project=${{ matrix.browser }}
           else
             npx playwright test $TESTS --config=playwright.config.temp.ts --project=${{ matrix.browser }}
           fi
-        env:
-          BASE_URL: ${{ secrets.STAGING_BASE_URL || 'https://platform.qa-1.eater.com' }}
-          API_URL: ${{ secrets.STAGING_API_URL || 'https://platform.qa-1.eater.com/wp-json' }}
-          LOGIN_URL: ${{ secrets.STAGING_BASE_URL || 'https://platform.qa-1.eater.com' }}/wp-login.php
+          
+          # Cleanup
+          rm -f playwright.config.temp.ts .env
 
-      - name: Clean up temporary files
-        if: always()
-        run: |
-          rm -f playwright.config.temp.ts
-          rm -f .env
-
-      - name: Upload cross-browser results
+      - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cross-browser-results-${{ matrix.browser }}
+          name: test-results-${{ matrix.browser }}
           path: |
             test-results/
             playwright-report/
-          retention-days: 7
-
-  generate-report:
-    name: 📊 Generate Test Report
-    runs-on: ubuntu-latest
-    needs: [detect-changes, setup-authentication, run-targeted-tests]
-    if: always() && needs.detect-changes.outputs.skip-tests != 'true'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
-
-      - name: Generate consolidated report
-        run: |
-          echo "# 🧪 Test Execution Report" > test-summary.md
-          echo "" >> test-summary.md
-          echo "**Strategy**: ${{ needs.detect-changes.outputs.test-strategy }}" >> test-summary.md
-          echo "**Tests Executed**: ${{ needs.detect-changes.outputs.tests-to-run }}" >> test-summary.md
-          echo "" >> test-summary.md
-          
-          # Count test results
-          PASSED=$(find artifacts/ -name "*.xml" -exec grep -l 'failures="0"' {} \; 2>/dev/null | wc -l || echo "0")
-          FAILED=$(find artifacts/ -name "*.xml" -exec grep -l 'failures="[1-9]"' {} \; 2>/dev/null | wc -l || echo "0")
-          
-          echo "## 📈 Results Summary" >> test-summary.md
-          echo "- ✅ Passed: $PASSED" >> test-summary.md
-          echo "- ❌ Failed: $FAILED" >> test-summary.md
-          echo "" >> test-summary.md
-          
-          if [ "${{ needs.detect-changes.outputs.test-strategy }}" != "full" ]; then
-            echo "## 🎯 Optimization Impact" >> test-summary.md
-            echo "Targeted testing saved time by running only relevant tests based on file changes." >> test-summary.md
-            echo "" >> test-summary.md
-          fi
-
-      - name: Upload consolidated report
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-summary-report
-          path: test-summary.md
-
-  notify:
-    name: 📢 Notify Results
-    runs-on: ubuntu-latest
-    needs: [detect-changes, setup-authentication, run-targeted-tests]
-    if: always()
-    steps:
-      - name: 📋 Post GitHub Summary
-        run: |
-          if [ "${{ needs.detect-changes.outputs.skip-tests }}" = "true" ]; then
-            echo "## 📝 Tests Skipped" >> $GITHUB_STEP_SUMMARY
-            echo "Only documentation files were changed - no tests executed." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "## 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
-            echo "**Mode**: ${{ github.event.inputs.execution_mode || 'change-driven' }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Strategy**: ${{ needs.detect-changes.outputs.test-strategy }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Tests**: ${{ needs.detect-changes.outputs.tests-to-run }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Browser Matrix**: ${{ github.event.inputs.browser_matrix || 'chromium-only' }}" >> $GITHUB_STEP_SUMMARY
-            echo "**Authentication**: ${{ needs.setup-authentication.result != 'skipped' && '✅ Enabled' || '⏭️ Skipped' }}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            if [ "${{ needs.run-targeted-tests.result }}" = "success" ]; then
-              echo "✅ **All targeted tests passed!**" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "❌ **Some tests failed - check artifacts for details**" >> $GITHUB_STEP_SUMMARY
-            fi
-            
-            # Add authentication specific notes
-            if [ "${{ needs.setup-authentication.result }}" = "success" ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "🔐 **Authentication**: Login test passed - session state available for E2E tests" >> $GITHUB_STEP_SUMMARY
-            elif [ "${{ needs.setup-authentication.result }}" = "failure" ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "🚨 **Authentication**: Login test failed - check authentication artifacts" >> $GITHUB_STEP_SUMMARY
-            fi
-            
-            # Add execution mode specific notes
-            case "${{ github.event.inputs.execution_mode }}" in
-              "run-all")
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo "🚀 **Manual execution**: Full test suite requested" >> $GITHUB_STEP_SUMMARY
-                ;;
-              "run-specific")
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo "🎯 **Manual execution**: Specific tests - ${{ github.event.inputs.specific_tests }}" >> $GITHUB_STEP_SUMMARY
-                ;;
-              "change-driven"|"")
-                if [ "${{ needs.detect-changes.outputs.test-strategy }}" != "skip" ]; then
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "🧠 **Smart execution**: Tests selected based on file changes" >> $GITHUB_STEP_SUMMARY
-                fi
-                ;;
-            esac
-          fi
+          retention-days: 3
