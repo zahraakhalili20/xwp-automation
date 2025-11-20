@@ -284,23 +284,10 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Setup and prepare authentication
+      - name: Setup dependencies
         run: |
           npm ci
           npx playwright install ${{ matrix.browser }} --with-deps
-          
-          # Download and setup auth if available
-          AUTH_STATE=""
-          if [ "${{ needs.setup-authentication.result }}" = "success" ]; then
-            if [ -f "staging-ione.json" ]; then
-              mkdir -p playwright/.auth
-              mv staging-ione.json playwright/.auth/staging-ione.json
-            fi
-            if [ -f "playwright/.auth/staging-ione.json" ]; then
-              AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
-            fi
-          fi
-          echo "AUTH_STATE=$AUTH_STATE" >> $GITHUB_ENV
 
       - name: Download authentication state
         if: needs.setup-authentication.result == 'success'
@@ -309,9 +296,21 @@ jobs:
           name: auth-state
           path: playwright/.auth/
 
+      - name: Prepare authentication
+        run: |
+          # Set up authentication state variable
+          AUTH_STATE=""
+          if [ "${{ needs.setup-authentication.result }}" = "success" ] && [ -f "playwright/.auth/staging-ione.json" ]; then
+            AUTH_STATE="storageState: 'playwright/.auth/staging-ione.json',"
+            echo "✅ Authentication state available"
+          else
+            echo "⏭️ No authentication state - running without login"
+          fi
+          echo "AUTH_STATE=$AUTH_STATE" >> $GITHUB_ENV
+
       - name: 🎯 Run targeted tests
         run: |
-          # Create config and env
+          # Create config with auth state
           cat > playwright.config.temp.ts << EOF
           import { defineConfig, devices } from '@playwright/test';
           import { config } from 'dotenv';
@@ -327,7 +326,7 @@ jobs:
               baseURL: process.env.STAGING_BASE_URL || 'https://staging.go.ione.nyc',
               trace: 'on-first-retry',
               screenshot: 'only-on-failure',
-              ${{ env.AUTH_STATE }}
+              ${AUTH_STATE}
             },
             projects: [{ name: '${{ matrix.browser }}', use: { ...devices['Desktop Chrome'] } }],
           });
