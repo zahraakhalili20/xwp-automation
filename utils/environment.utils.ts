@@ -26,8 +26,8 @@ export class EnvironmentManager {
    */
   private loadConfiguration(): EnvironmentConfig {
     return {
-      baseUrl: process.env.BASE_URL || 'http://localhost:3000',
-      apiUrl: process.env.API_URL || 'http://localhost:3000/api',
+      baseUrl: process.env.STAGING_BASE_URL || 'https://staging.go.ione.nyc',
+      apiUrl: process.env.STAGING_API_URL || 'https://staging.go.ione.nyc/api',
       timeout: parseInt(process.env.TEST_TIMEOUT || '30000'),
       retries: parseInt(process.env.TEST_RETRIES || '1'),
       headless: process.env.HEADLESS !== 'false'
