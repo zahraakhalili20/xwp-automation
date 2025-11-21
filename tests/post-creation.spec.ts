@@ -237,8 +237,10 @@ test.describe('Post Creation Tests', {
     expect(postId).not.toBeNull();
     expect(postId).toMatch(/^\d+$/); // Should be a numeric string
     
-    // Verify we're on the edit page (indicates successful publishing)
-    await expect(page).toHaveURL(/.*post\.php.*action=edit/);
+    // Verify publishing was successful by checking post details are preserved
+    // This is more reliable than URL checking on different WordPress setups
+    const publishedDetailsMatch = await postPage.verifyPostDetails(testTitle, testContent);
+    expect(publishedDetailsMatch).toBe(true);
 
     await context.close();
   })
@@ -349,7 +351,10 @@ test.describe('Post Creation Tests', {
     expect(actualTitle).toBe(testTitle);
 
     const actualContent = await postPage.getPostContentFromTextEditor();
-    expect(actualContent).toBe(testContent);
+    // Normalize HTML entities for comparison since WordPress may use &#039; instead of &#39;
+    const normalizedExpected = testContent.replace(/&#0*39;/g, '&#39;');
+    const normalizedActual = actualContent.replace(/&#0*39;/g, '&#39;');
+    expect(normalizedActual).toBe(normalizedExpected);
 
     // Use order-independent comparison for tags
     const actualTags = await postPage.getTagsValue();

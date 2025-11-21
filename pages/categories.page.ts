@@ -231,6 +231,11 @@ export class CategoriesPage extends BasePage {
 
       // Wait for edit form to load - use edit form specific selectors
       await this.page.waitForLoadState('networkidle');
+      await this.page.waitForTimeout(1000); // Give extra time for form to render
+      
+      // Log current page URL to ensure we're on edit page
+      const currentUrl = this.page.url();
+      SmartLogger.logUserAction('edit page URL', currentUrl);
       
       // WordPress edit form uses different field names
       const editNameField = 'input[name="name"]';
@@ -259,21 +264,30 @@ export class CategoriesPage extends BasePage {
       const submitSelectors = [
         'input[type="submit"].button-primary',
         'input[type="submit"][name="submit"]',
+        'input[value="Update"]',
+        'input[type="submit"][value="Update"]', 
         '#submit',
-        '.button-primary'
+        '.button-primary',
+        '[type="submit"]',
+        'button[type="submit"]'
       ];
       
       let buttonClicked = false;
       for (const selector of submitSelectors) {
         try {
-          if (await this.page.locator(selector).isVisible({ timeout: 2000 })) {
+          const element = this.page.locator(selector);
+          const isVisible = await element.isVisible({ timeout: 1000 });
+          if (isVisible) {
+            SmartLogger.logUserAction('found submit button', selector);
             await elementHelper.clickElement(this.page, selector);
             SmartLogger.logUserAction('clicked update category button', selector);
             buttonClicked = true;
             break;
+          } else {
+            SmartLogger.logUserAction('submit button not visible', selector);
           }
         } catch (e) {
-          // Try next selector
+          SmartLogger.logUserAction('submit button selector failed', selector, (e as Error).message);
           continue;
         }
       }
