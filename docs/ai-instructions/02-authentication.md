@@ -61,7 +61,7 @@ The session is automatically configured in `playwright.config.ts`:
   name: 'staging',
   use: {
     baseURL: 'https://staging.go.ione.nyc',
-    storageState: '.auth/staging-ione.json'  // Automatically loads saved session
+    storageState: 'playwright/.auth/staging-ione.json'  // Automatically loads saved session
   }
 }
 ```
@@ -158,7 +158,7 @@ production: {
   storageState: '.auth/production.json' 
 },
 staging: { 
-  storageState: '.auth/staging-ione.json' 
+  storageState: 'playwright/.auth/staging-ione.json' 
 },
 development: { 
   storageState: '.auth/development.json' 
