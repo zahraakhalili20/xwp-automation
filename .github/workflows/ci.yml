@@ -17,7 +17,15 @@ on:
           - 'run-all'
           - 'run-specific'
       specific_tests:
-        description: 'Specific tests/folders to run (only used with "run-specific" mode) - excludes login tests'
+        description: 'Specific tests/folders to run (only used with "run-specific" mode) - excludes                       <div class="card">
+                          <h2>🔧 Test Coverage</h2>
+                          <p>✓ Post Creation & Editing</p>
+                          <p>✓ Publishing Workflow</p>
+                          <p>✓ Tags & Metadata</p>
+                          <p>✓ Content Verification</p>
+                          <p>✓ Dashboard & Navigation</p>
+                          <p>✓ Categories Management</p>
+                          <p>✓ All Posts Integration</p>tests'
         required: false
         default: 'tests/dashboard.spec.ts'
         type: string
@@ -376,6 +384,50 @@ jobs:
           CURRENT_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
           SHORT_COMMIT=$(echo "${{ github.sha }}" | cut -c1-7)
           
+          # Extract test results from artifacts
+          TOTAL_TESTS=0
+          PASSED_TESTS=0
+          FAILED_TESTS=0
+          
+          # Parse test results from test-results directory
+          if [ -d "./all-results/test-results" ]; then
+            # Count JSON result files which indicate individual test runs
+            TOTAL_TESTS=$(find ./all-results/test-results -name "*results.json" | wc -l | tr -d ' ')
+            PASSED_TESTS=$(find ./all-results/test-results -name "*results.json" -exec grep -l '"status":"passed"' {} \; | wc -l | tr -d ' ')
+            FAILED_TESTS=$(find ./all-results/test-results -name "*results.json" -exec grep -l '"status":"failed"' {} \; | wc -l | tr -d ' ')
+          fi
+          
+          # Fallback to counting from playwright report if available
+          if [ $TOTAL_TESTS -eq 0 ] && [ -f "./all-results/playwright-report/index.html" ]; then
+            # Try to extract numbers from HTML report
+            TOTAL_TESTS=$(grep -o '[0-9]\+ passed' ./all-results/playwright-report/index.html | head -1 | grep -o '[0-9]\+' || echo "0")
+            PASSED_TESTS=$TOTAL_TESTS
+          fi
+          
+          # Default fallback values if no results found
+          if [ $TOTAL_TESTS -eq 0 ]; then
+            TOTAL_TESTS="Unknown"
+            PASSED_TESTS="Unknown"
+            SUCCESS_RATE="N/A"
+            ACHIEVEMENT_MSG="Test results not available in artifacts"
+            STATUS_CLASS="warning"
+          else
+            SUCCESS_RATE=$(echo "scale=0; $PASSED_TESTS * 100 / $TOTAL_TESTS" | bc -l)
+            if [ $PASSED_TESTS -eq $TOTAL_TESTS ]; then
+              ACHIEVEMENT_MSG="🎉 ${SUCCESS_RATE}% Success Rate Achieved! All $TOTAL_TESTS tests passing perfectly"
+              STATUS_CLASS="success"
+            else
+              ACHIEVEMENT_MSG="⚠️ ${SUCCESS_RATE}% Success Rate - $PASSED_TESTS of $TOTAL_TESTS tests passing"
+              STATUS_CLASS="warning"
+            fi
+          fi
+          
+          echo "📊 Test Results Summary:"
+          echo "Total Tests: $TOTAL_TESTS"
+          echo "Passed Tests: $PASSED_TESTS"
+          echo "Failed Tests: $FAILED_TESTS"
+          echo "Success Rate: $SUCCESS_RATE%"
+          
           # Update the main dashboard with latest run info
           cat > ./docs/index.html << EOF
           <!DOCTYPE html>
@@ -408,13 +460,21 @@ jobs:
                       text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
                   }
                   .achievement {
-                      background: linear-gradient(135deg, #38a169, #68d391);
                       color: white;
                       text-align: center;
                       border-radius: 15px;
                       padding: 30px;
                       margin-bottom: 30px;
                       box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                  }
+                  .achievement.success {
+                      background: linear-gradient(135deg, #38a169, #68d391);
+                  }
+                  .achievement.warning {
+                      background: linear-gradient(135deg, #d69e2e, #f6e05e);
+                  }
+                  .achievement.error {
+                      background: linear-gradient(135deg, #e53e3e, #feb2b2);
                   }
                   .dashboard {
                       display: grid;
@@ -464,16 +524,15 @@ jobs:
                       <p>WordPress E2E Testing Dashboard</p>
                   </div>
                   
-                  <div class="achievement">
-                      <h2>🎉 100% Success Rate Achieved!</h2>
-                      <p>All 12 post creation tests passing perfectly</p>
+                  <div class="achievement \${STATUS_CLASS}">
+                      <h2>\${ACHIEVEMENT_MSG}</h2>
                   </div>
                   
                   <div class="dashboard">
                       <div class="card">
                           <h2>📊 Latest Results</h2>
-                          <p><strong>✅ 12/12 Tests Passing</strong></p>
-                          <p><strong>🎯 100% Success Rate</strong></p>
+                          <p><strong>✅ \${PASSED_TESTS}/\${TOTAL_TESTS} Tests Passing</strong></p>
+                          <p><strong>🎯 \${SUCCESS_RATE}% Success Rate</strong></p>
                           <p><strong>⚡ Fast & Reliable</strong></p>
                       </div>
                       <div class="card">
