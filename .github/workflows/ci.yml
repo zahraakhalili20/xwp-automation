@@ -372,8 +372,12 @@ jobs:
             cp -r ./all-results/playwright-report/* ./docs/reports/latest/
           fi
           
+          # Generate timestamp and short commit hash
+          CURRENT_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          SHORT_COMMIT=$(echo "${{ github.sha }}" | cut -c1-7)
+          
           # Update the main dashboard with latest run info
-          cat > ./docs/index.html << 'EOF'
+          cat > ./docs/index.html << EOF
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -488,8 +492,8 @@ jobs:
                   </div>
                   
                   <div class="timestamp">
-                      Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')<br>
-                      Build: #${{ github.run_number }} | Commit: $(echo "${{ github.sha }}" | cut -c1-7)
+                      Last updated: ${CURRENT_TIME}<br>
+                      Build: #${{ github.run_number }} | Commit: ${SHORT_COMMIT}
                   </div>
               </div>
           </body>
