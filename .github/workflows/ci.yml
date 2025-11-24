@@ -524,15 +524,15 @@ jobs:
                       <p>WordPress E2E Testing Dashboard</p>
                   </div>
                   
-                  <div class="achievement \${STATUS_CLASS}">
-                      <h2>\${ACHIEVEMENT_MSG}</h2>
+                  <div class="achievement ${STATUS_CLASS}">
+                      <h2>${ACHIEVEMENT_MSG}</h2>
                   </div>
                   
                   <div class="dashboard">
                       <div class="card">
                           <h2>📊 Latest Results</h2>
-                          <p><strong>✅ \${PASSED_TESTS}/\${TOTAL_TESTS} Tests Passing</strong></p>
-                          <p><strong>🎯 \${SUCCESS_RATE}% Success Rate</strong></p>
+                          <p><strong>✅ ${PASSED_TESTS}/${TOTAL_TESTS} Tests Passing</strong></p>
+                          <p><strong>🎯 ${SUCCESS_RATE}% Success Rate</strong></p>
                           <p><strong>⚡ Fast & Reliable</strong></p>
                       </div>
                       <div class="card">
