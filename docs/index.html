@@ -27,10 +27,6 @@
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-        .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
         .achievement {
             background: linear-gradient(135deg, #38a169, #68d391);
             color: white;
@@ -39,15 +35,6 @@
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-        .achievement h2 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            color: white;
-        }
-        .achievement p {
-            font-size: 1.3rem;
-            opacity: 0.95;
         }
         .dashboard {
             display: grid;
@@ -60,44 +47,11 @@
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        }
-        .card h2 {
-            color: #4a5568;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-        }
-        .metric {
-            display: flex;
-            align-items: center;
-            margin: 15px 0;
-        }
-        .metric-icon {
-            font-size: 2rem;
-            margin-right: 15px;
-        }
-        .metric-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #2d3748;
-        }
-        .metric-label {
-            color: #718096;
-            font-size: 0.9rem;
-        }
-        .success { color: #38a169; }
-        .warning { color: #d69e2e; }
-        .error { color: #e53e3e; }
-        .info { color: #3182ce; }
         .actions {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
         }
         .action-btn {
             display: block;
@@ -112,41 +66,14 @@
             transition: all 0.3s ease;
         }
         .action-btn:hover {
-            background: #f7fafc;
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        .test-results {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-        .test-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .test-item:last-child {
-            border-bottom: none;
-        }
-        .test-status {
-            font-size: 1.2rem;
-            margin-right: 15px;
-            min-width: 30px;
-        }
-        .test-name {
-            flex: 1;
-            font-weight: 500;
         }
         .timestamp {
             text-align: center;
             color: white;
             opacity: 0.8;
             margin-top: 30px;
-            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -164,138 +91,29 @@
         
         <div class="dashboard">
             <div class="card">
-                <h2>📊 Test Overview</h2>
-                <div class="metric">
-                    <span class="metric-icon success">✅</span>
-                    <div>
-                        <div class="metric-value success">12/12</div>
-                        <div class="metric-label">Post Creation Tests</div>
-                    </div>
-                </div>
-                <div class="metric">
-                    <span class="metric-icon success">🎯</span>
-                    <div>
-                        <div class="metric-value success">100%</div>
-                        <div class="metric-label">Pass Rate</div>
-                    </div>
-                </div>
+                <h2>📊 Latest Results</h2>
+                <p><strong>✅ 12/12 Tests Passing</strong></p>
+                <p><strong>🎯 100% Success Rate</strong></p>
+                <p><strong>⚡ Fast & Reliable</strong></p>
             </div>
-            
             <div class="card">
-                <h2>🔧 Test Categories</h2>
-                <div class="metric">
-                    <span class="metric-icon info">📝</span>
-                    <div>
-                        <div class="metric-value info">✓</div>
-                        <div class="metric-label">Post Creation & Editing</div>
-                    </div>
-                </div>
-                <div class="metric">
-                    <span class="metric-icon info">🏷️</span>
-                    <div>
-                        <div class="metric-value info">✓</div>
-                        <div class="metric-label">Tags & Metadata</div>
-                    </div>
-                </div>
-                <div class="metric">
-                    <span class="metric-icon info">🌐</span>
-                    <div>
-                        <div class="metric-value info">✓</div>
-                        <div class="metric-label">Publishing Workflow</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2>📈 Quality Metrics</h2>
-                <div class="metric">
-                    <span class="metric-icon success">⚡</span>
-                    <div>
-                        <div class="metric-value success">~23s</div>
-                        <div class="metric-label">Execution Time</div>
-                    </div>
-                </div>
-                <div class="metric">
-                    <span class="metric-icon success">🛡️</span>
-                    <div>
-                        <div class="metric-value success">Stable</div>
-                        <div class="metric-label">Test Reliability</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="test-results">
-            <h2>📋 Test Results Details</h2>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Load post editor directly</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Create post with title and content</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Save post as draft</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Add tags to post</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Navigate from dashboard to post editor</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Create and publish post</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Verify post details after draft creation</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Verify post details after publishing</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Verify post details persist after editing</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Verify empty content handling</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Verify special characters in post content</span>
-            </div>
-            <div class="test-item">
-                <span class="test-status success">✅</span>
-                <span class="test-name">Create post and verify it appears in all posts list</span>
+                <h2>� Test Coverage</h2>
+                <p>✓ Post Creation & Editing</p>
+                <p>✓ Publishing Workflow</p>
+                <p>✓ Tags & Metadata</p>
+                <p>✓ Content Verification</p>
             </div>
         </div>
         
         <div class="actions">
-            <a href="https://github.com/zahraakhalili20/xwp-automation" class="action-btn">
-                💻 Source Code
-            </a>
-            <a href="https://github.com/zahraakhalili20/xwp-automation/actions" class="action-btn">
-                🔄 CI/CD Pipeline
-            </a>
-            <a href="https://github.com/zahraakhalili20/xwp-automation/blob/main/README.md" class="action-btn">
-                📚 Documentation
-            </a>
-            <a href="https://github.com/zahraakhalili20/xwp-automation/tree/main/tests" class="action-btn">
-                🧪 Test Suite
-            </a>
+            <a href="./reports/latest/index.html" class="action-btn">📊 View Detailed Report</a>
+            <a href="https://github.com/zahraakhalili20/xwp-automation" class="action-btn">� Source Code</a>
+            <a href="https://github.com/zahraakhalili20/xwp-automation/actions" class="action-btn">🔄 CI/CD Pipeline</a>
         </div>
         
         <div class="timestamp">
-            Generated: November 24, 2025 | 
-            Build: Based on 100% Success Run | 
-            Status: All Tests Passing
+            Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')<br>
+            Build: #21 | Commit: $(echo "823928b96be322d73a71f9a70e65073b1d7d8b4f" | cut -c1-7)
         </div>
     </div>
 </body>
