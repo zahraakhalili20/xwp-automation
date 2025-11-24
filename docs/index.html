@@ -28,13 +28,21 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         .achievement {
-            background: linear-gradient(135deg, #38a169, #68d391);
             color: white;
             text-align: center;
             border-radius: 15px;
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .achievement.success {
+            background: linear-gradient(135deg, #38a169, #68d391);
+        }
+        .achievement.warning {
+            background: linear-gradient(135deg, #d69e2e, #f6e05e);
+        }
+        .achievement.error {
+            background: linear-gradient(135deg, #e53e3e, #feb2b2);
         }
         .dashboard {
             display: grid;
@@ -84,16 +92,15 @@
             <p>WordPress E2E Testing Dashboard</p>
         </div>
         
-        <div class="achievement">
-            <h2>🎉 100% Success Rate Achieved!</h2>
-            <p>All 12 post creation tests passing perfectly</p>
+        <div class="achievement ${STATUS_CLASS}">
+            <h2>${ACHIEVEMENT_MSG}</h2>
         </div>
         
         <div class="dashboard">
             <div class="card">
                 <h2>📊 Latest Results</h2>
-                <p><strong>✅ 12/12 Tests Passing</strong></p>
-                <p><strong>🎯 100% Success Rate</strong></p>
+                <p><strong>✅ ${PASSED_TESTS}/${TOTAL_TESTS} Tests Passing</strong></p>
+                <p><strong>🎯 ${SUCCESS_RATE}% Success Rate</strong></p>
                 <p><strong>⚡ Fast & Reliable</strong></p>
             </div>
             <div class="card">
@@ -112,8 +119,8 @@
         </div>
         
         <div class="timestamp">
-            Last updated: 2025-11-24 23:16:04 UTC<br>
-            Build: #24 | Commit: e454cd2
+            Last updated: 2025-11-24 23:21:41 UTC<br>
+            Build: #25 | Commit: e1afa21
         </div>
     </div>
 </body>
