@@ -459,8 +459,8 @@ jobs:
             
             # Check if workflow conclusion is available
             if [ "${{ needs.run-tests-with-auth.result }}" = "success" ]; then
-              TOTAL_TESTS="Several"
-              PASSED_TESTS="All"
+              TOTAL_TESTS="✓"
+              PASSED_TESTS="✓"
               SUCCESS_RATE="100"
               ACHIEVEMENT_MSG="🎉 Tests completed successfully! (Details not available in artifacts)"
               STATUS_CLASS="success"
@@ -487,6 +487,13 @@ jobs:
           echo "Passed Tests: $PASSED_TESTS"
           echo "Failed Tests: $FAILED_TESTS"
           echo "Success Rate: $SUCCESS_RATE%"
+          
+          # Create appropriate display text for test results
+          if [ "$PASSED_TESTS" = "✓" ]; then
+            RESULT_DISPLAY="✅ All Tests Passing"
+          else
+            RESULT_DISPLAY="✅ ${PASSED_TESTS}/${TOTAL_TESTS} Tests Passing"
+          fi
           
           # Update the main dashboard with latest run info
           cat > ./docs/index.html << EOF
@@ -591,16 +598,19 @@ jobs:
                   <div class="dashboard">
                       <div class="card">
                           <h2>📊 Latest Results</h2>
-                          <p><strong>✅ ${PASSED_TESTS}/${TOTAL_TESTS} Tests Passing</strong></p>
+                          <p><strong>${RESULT_DISPLAY}</strong></p>
                           <p><strong>🎯 ${SUCCESS_RATE}% Success Rate</strong></p>
                           <p><strong>⚡ Fast & Reliable</strong></p>
                       </div>
                       <div class="card">
-                          <h2>� Test Coverage</h2>
+                          <h2>🔧 Test Coverage</h2>
                           <p>✓ Post Creation & Editing</p>
                           <p>✓ Publishing Workflow</p>
                           <p>✓ Tags & Metadata</p>
                           <p>✓ Content Verification</p>
+                          <p>✓ Dashboard & Navigation</p>
+                          <p>✓ Categories Management</p>
+                          <p>✓ All Posts Integration</p>
                       </div>
                   </div>
                   
