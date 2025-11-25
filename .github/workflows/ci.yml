@@ -389,28 +389,88 @@ jobs:
           PASSED_TESTS=0
           FAILED_TESTS=0
           
+          # Debug: Show what artifacts we have
+          echo "🔍 Debugging artifact structure:"
+          ls -la ./all-results/ || echo "No all-results directory"
+          
           # Parse test results from test-results directory
           if [ -d "./all-results/test-results" ]; then
+            echo "📁 Found test-results directory"
+            find ./all-results/test-results -type f -name "*.json" | head -5
+            
             # Count JSON result files which indicate individual test runs
             TOTAL_TESTS=$(find ./all-results/test-results -name "*results.json" | wc -l | tr -d ' ')
             PASSED_TESTS=$(find ./all-results/test-results -name "*results.json" -exec grep -l '"status":"passed"' {} \; | wc -l | tr -d ' ')
             FAILED_TESTS=$(find ./all-results/test-results -name "*results.json" -exec grep -l '"status":"failed"' {} \; | wc -l | tr -d ' ')
+            
+            echo "📊 From JSON files: Total=$TOTAL_TESTS, Passed=$PASSED_TESTS, Failed=$FAILED_TESTS"
+          fi
+          
+          # Alternative: Try parsing from any JSON files in the artifacts
+          if [ $TOTAL_TESTS -eq 0 ]; then
+            echo "🔍 Trying alternative JSON parsing..."
+            JSON_FILES=$(find ./all-results -name "*.json" | head -10)
+            if [ ! -z "$JSON_FILES" ]; then
+              echo "Found JSON files:"
+              echo "$JSON_FILES"
+              
+              # Try counting tests from any results.json or test results files
+              for json_file in $(find ./all-results -name "*.json"); do
+                if grep -q '"tests":\[' "$json_file" 2>/dev/null; then
+                  echo "Found test data in: $json_file"
+                  TESTS_IN_FILE=$(grep -o '"title":[^,]*' "$json_file" | wc -l)
+                  PASSED_IN_FILE=$(grep -o '"status":"passed"' "$json_file" | wc -l)
+                  FAILED_IN_FILE=$(grep -o '"status":"failed"' "$json_file" | wc -l)
+                  
+                  TOTAL_TESTS=$((TOTAL_TESTS + TESTS_IN_FILE))
+                  PASSED_TESTS=$((PASSED_TESTS + PASSED_IN_FILE))
+                  FAILED_TESTS=$((FAILED_TESTS + FAILED_IN_FILE))
+                  
+                  echo "Found $TESTS_IN_FILE tests ($PASSED_IN_FILE passed, $FAILED_IN_FILE failed) in $json_file"
+                fi
+              done
+            fi
           fi
           
           # Fallback to counting from playwright report if available
           if [ $TOTAL_TESTS -eq 0 ] && [ -f "./all-results/playwright-report/index.html" ]; then
-            # Try to extract numbers from HTML report
-            TOTAL_TESTS=$(grep -o '[0-9]\+ passed' ./all-results/playwright-report/index.html | head -1 | grep -o '[0-9]\+' || echo "0")
-            PASSED_TESTS=$TOTAL_TESTS
+            echo "🎭 Trying Playwright HTML report parsing..."
+            
+            # Try multiple patterns for test results
+            PASSED_COUNT=$(grep -o '[0-9]\+ passed' ./all-results/playwright-report/index.html | head -1 | grep -o '[0-9]\+' || echo "0")
+            FAILED_COUNT=$(grep -o '[0-9]\+ failed' ./all-results/playwright-report/index.html | head -1 | grep -o '[0-9]\+' || echo "0")
+            SKIPPED_COUNT=$(grep -o '[0-9]\+ skipped' ./all-results/playwright-report/index.html | head -1 | grep -o '[0-9]\+' || echo "0")
+            
+            # Also try pattern like "12 passed (23.0s)"
+            if [ $PASSED_COUNT -eq 0 ]; then
+              PASSED_COUNT=$(grep -o '[0-9]\+ passed (' ./all-results/playwright-report/index.html | head -1 | grep -o '[0-9]\+' || echo "0")
+            fi
+            
+            PASSED_TESTS=$PASSED_COUNT
+            FAILED_TESTS=$FAILED_COUNT
+            TOTAL_TESTS=$((PASSED_TESTS + FAILED_TESTS + SKIPPED_COUNT))
+            
+            echo "📈 From HTML report: Passed=$PASSED_TESTS, Failed=$FAILED_TESTS, Total=$TOTAL_TESTS"
           fi
           
           # Default fallback values if no results found
           if [ $TOTAL_TESTS -eq 0 ]; then
-            TOTAL_TESTS="Unknown"
-            PASSED_TESTS="Unknown"
-            SUCCESS_RATE="N/A"
-            ACHIEVEMENT_MSG="Test results not available in artifacts"
-            STATUS_CLASS="warning"
+            echo "⚠️ No test results found in artifacts, using basic fallback"
+            
+            # Check if workflow conclusion is available
+            if [ "${{ needs.run-tests-with-auth.result }}" = "success" ]; then
+              TOTAL_TESTS="Several"
+              PASSED_TESTS="All"
+              SUCCESS_RATE="100"
+              ACHIEVEMENT_MSG="🎉 Tests completed successfully! (Details not available in artifacts)"
+              STATUS_CLASS="success"
+            else
+              TOTAL_TESTS="Unknown"
+              PASSED_TESTS="Unknown"
+              SUCCESS_RATE="N/A"
+              ACHIEVEMENT_MSG="⚠️ Test results not available in artifacts"
+              STATUS_CLASS="warning"
+            fi
           else
             SUCCESS_RATE=$(echo "scale=0; $PASSED_TESTS * 100 / $TOTAL_TESTS" | bc -l)
             if [ $PASSED_TESTS -eq $TOTAL_TESTS ]; then
@@ -419,6 +479,8 @@ jobs:
             else
               ACHIEVEMENT_MSG="⚠️ ${SUCCESS_RATE}% Success Rate - $PASSED_TESTS of $TOTAL_TESTS tests passing"
               STATUS_CLASS="warning"
+            fi
+          fi
             fi
           fi
           
