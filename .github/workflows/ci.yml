@@ -481,8 +481,6 @@ jobs:
               STATUS_CLASS="warning"
             fi
           fi
-            fi
-          fi
           
           echo "📊 Test Results Summary:"
           echo "Total Tests: $TOTAL_TESTS"
